@@ -1,215 +1,285 @@
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+#═════════════════════════════════════════════════╗
+# ║   🎌 A N I M E  W A T C H L I S T  B O T  🎌    ║
+# ║        ✦ Kawaii · Powerful · Premium ✦           ║
+# ╚══════════════════════════════════════════════════╝
+
+import asyncio
+import random
+import logging
+
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+)
 from telegram.ext import ContextTypes
+from telegram.constants import ParseMode, ChatAction
+
 from database.db import upsert_user, get_user_stats
-from utils.keyboards import main_menu_kb, watchlist_filter_kb
+from utils.keyboards import watchlist_filter_kb
 import database.db as db
 
-# ══════════════════════════════════════════════════════════════
-#   MESSAGES
-# ══════════════════════════════════════════════════════════════
+logger = logging.getLogger(__name__)
 
-WELCOME = (
-    "🌸 <b>Konnichiwa, {name}!</b>\n\n"
-    "╔════════════════════════╗\n"
-    "║  🎌  ANIME WATCHLIST   ║\n"
-    "╚════════════════════════╝\n\n"
-    "Your personal anime universe tracker — powered by AniList.\n\n"
-    "━━━━━━━━━━━━━━━━━━━━━━━━\n"
-    "🔍  Search any anime instantly\n"
-    "📋  Build your watchlist\n"
-    "📊  Track episode progress\n"
-    "⭐  Rate & review anime\n"
-    "⏰  Set episode reminders\n"
-    "🏆  Flex your top-rated list\n"
-    "━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-    "👇 <b>Choose from the menu below</b> to get started!"
-)
 
-HELP_TEXT = (
-    "📖 <b>Command Reference</b>\n\n"
-    "┌─ 🔍 <b>SEARCH</b>\n"
-    "│  /search &lt;name&gt; — Find any anime\n"
-    "│\n"
-    "├─ 📋 <b>WATCHLIST</b>\n"
-    "│  /list        — View your full list\n"
-    "│  /add &lt;name&gt;  — Add anime\n"
-    "│  /remove &lt;id&gt; — Remove anime\n"
-    "│  /status &lt;id&gt; — Change status\n"
-    "│  /progress &lt;id&gt; &lt;ep&gt; — Update episode\n"
-    "│\n"
-    "├─ 📊 <b>STATS</b>\n"
-    "│  /stats — Your personal stats\n"
-    "│  /top   — Your top-rated anime\n"
-    "│\n"
-    "└─ ⏰ <b>REMINDERS</b>\n"
-    "   /remind — Manage all reminders\n\n"
-    "━━━━━━━━━━━━━━━━━━━━━━━━\n"
-    "💡 <i>Pro tip: Just type any anime name — I'll search it instantly!</i>"
-)
+# ╔══════════════════════════════════════════════════╗
+# ║                    CONFIG                        ║
+# ╚══════════════════════════════════════════════════╝
 
-# ══════════════════════════════════════════════════════════════
-#   ANIME SPOTLIGHT VIDEOS
-#   Format: { anime_name: (video_file_id_or_url, description) }
-#   Replace file_id values with actual Telegram video file IDs
-#   or use direct .mp4 URLs (must be publicly accessible)
-# ══════════════════════════════════════════════════════════════
+BOT_NAME      = "『 ᴀɴɪᴍᴇ ᴡᴀᴛᴄʜ 』"
+BOT_USERNAME  = "YourBotUsername"        # 👈 apna bot username dalo
+SUPPORT_GROUP = "YourSupportGroup"       # 👈 support group link dalo
 
-SPOTLIGHT_VIDEOS = {
-    "attack_on_titan": {
-        "title": "⚔️ Attack on Titan",
-        "url": "https://files.catbox.moe/g1b6dp.mp4",   # replace with real clip
-        "thumbnail": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg",
-        "description": (
-            "🎌 <b>Attack on Titan</b> (<i>Shingeki no Kyojin</i>)\n\n"
-            "📺 <b>Studio:</b> MAPPA / Wit Studio\n"
-            "📅 <b>Aired:</b> Apr 2013 – Nov 2023\n"
-            "🎭 <b>Genre:</b> Action · Dark Fantasy · Post-Apocalyptic\n"
-            "⭐ <b>Score:</b> 9.0 / 10\n\n"
-            "In a world where humanity lives inside massive walled cities to protect "
-            "themselves from Titans — giant humanoid creatures — young Eren Yeager "
-            "swears revenge after witnessing the destruction of his hometown. "
-            "What unfolds is one of anime's most jaw-dropping stories of freedom, "
-            "war, and the true nature of evil.\n\n"
-            "🏆 <b>Awards:</b> Crunchyroll Anime of the Year 2023\n"
-            "💬 <b>Episodes:</b> 87 + 2 specials\n"
-            "🌍 <b>Status:</b> ✅ Completed"
-        ),
-    },
-    "demon_slayer": {
-        "title": "🌊 Demon Slayer",
-        "url": "https://files.catbox.moe/qkeqgs.mp4",
-        "thumbnail": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx101922-PEn1CTc93blC.jpg",
-        "description": (
-            "🎌 <b>Demon Slayer</b> (<i>Kimetsu no Yaiba</i>)\n\n"
-            "📺 <b>Studio:</b> ufotable\n"
-            "📅 <b>Aired:</b> Apr 2019 – Ongoing\n"
-            "🎭 <b>Genre:</b> Action · Supernatural · Historical\n"
-            "⭐ <b>Score:</b> 8.7 / 10\n\n"
-            "After his family is slaughtered by demons, young Tanjiro Kamado sets "
-            "out to become a Demon Slayer to avenge them — and cure his sister Nezuko "
-            "who has been turned into a demon. Featuring ufotable's legendary "
-            "animation and breathtaking sword-fighting choreography.\n\n"
-            "🏆 <b>Notable:</b> Mugen Train — highest-grossing anime film ever\n"
-            "💬 <b>Episodes:</b> 55+ (ongoing)\n"
-            "🌍 <b>Status:</b> 📡 Airing"
-        ),
-    },
-}
+# 🎬 Anime vibe short clips — catbox ya Telegram file_id
+VIDEO_PRIVATE = "https://files.catbox.moe/931ph0.mp4"   # 👈 replace karo
+VIDEO_GROUP   = "https://files.catbox.moe/dlg0rb.mp4"   # 👈 replace karo
 
-# ══════════════════════════════════════════════════════════════
-#   KEYBOARDS
-# ══════════════════════════════════════════════════════════════
+# 🌸 Sticker pool — randomly pick hoga har baar
+STICKER_POOL = [
+    "CAACAgUAAxkBAAFGPRZpzjXBHq7-IjDYsyawr6QAAQ5Oey8AAp0LAAK5UtFVp098U-zMvyc6BA",
+    # aur stickers add karo 👇
+    # "CAACAgIAAxkBAAI...",
+]
 
-def spotlight_kb():
-    """Keyboard shown below a spotlight video."""
+
+# ╔══════════════════════════════════════════════════╗
+# ║                  GREETINGS                       ║
+# ╚══════════════════════════════════════════════════╝
+
+GREETINGS = [
+    "ʜᴇʏʏ~ ᴜᴡᴜ 💕",
+    "ɴʏᴀᴀ~ 🌸",
+    "ʏᴏʜʜᴏ~ ✨",
+    "ᴋᴏɴɴɪᴄʜɪᴡᴀ~ 🫶",
+    "ʜᴏʟᴀ sᴇɴᴘᴀɪ~ 🎀",
+    "ᴀʀᴀ ᴀʀᴀ~ 🌺",
+    "ᴏʜᴀʏᴏᴜ~ ☀️",
+    "ᴋᴀᴡᴀɪɪ ᴅᴇsᴜ~ 💫",
+    "ʏᴀᴀᴀ~ 🌙",
+    "sᴜᴘ sᴇɴᴘᴀɪ~ 🔥",
+]
+
+
+# ╔══════════════════════════════════════════════════╗
+# ║                  HELP TEXT                       ║
+# ╚══════════════════════════════════════════════════╝
+
+HELP_TEXT = """
+🌸 <b>Anime Watchlist Bot — Commands</b>
+
+<b>🔍 Search</b>
+/search &lt;name&gt; — Search any anime (AniList)
+
+<b>📋 Watchlist</b>
+/list — View your full watchlist
+/add &lt;name&gt; — Add anime to list
+/remove &lt;id&gt; — Remove anime
+/status &lt;id&gt; — Change watching status
+/progress &lt;id&gt; &lt;ep&gt; — Update episode progress
+
+<b>📊 Stats</b>
+/stats — Your personal anime stats
+/top — Your top-rated anime list
+
+<b>⏰ Reminders</b>
+/remind — View &amp; manage all reminders
+
+<b>💡 Pro Tip:</b>
+Just type any anime name — I'll search it instantly~ 🎌
+"""
+
+
+# ╔══════════════════════════════════════════════════╗
+# ║                  CAPTIONS                        ║
+# ╚══════════════════════════════════════════════════╝
+
+def build_private_caption(user):
+    greet = random.choice(GREETINGS)
+    return (
+        f"┏━━━❖ 🎌 ❖━━━┓\n"
+        f"  {greet}\n\n"
+        f"  <b><a href='tg://user?id={user.id}'>{user.first_name}</a></b>\n"
+        f"┗━━━❖ 🎌 ❖━━━┛\n\n"
+        f"✨ <b>Welcome to {BOT_NAME}</b>\n\n"
+        f"➤ Your Personal Anime Tracker 📺\n"
+        f"➤ Powered by AniList Database 🌐\n\n"
+        f"───────────────\n"
+        f"🌸 <b>Features:</b>\n\n"
+        f"✦ Search 15,000+ Anime\n"
+        f"✦ Watchlist with 5 Statuses\n"
+        f"✦ Episode Progress Tracker\n"
+        f"✦ Rating System ⭐\n"
+        f"✦ Smart Reminders ⏰\n"
+        f"✦ Personal Stats 📊\n\n"
+        f"───────────────\n\n"
+        f"💖 Use the menu below\n"
+        f"to start your anime journey~ 🎌"
+    )
+
+
+def build_group_caption(user):
+    return (
+        f"🎌 <b>{BOT_NAME} is here!</b>\n\n"
+        f"ʜᴇʏ <a href='tg://user?id={user.id}'>{user.first_name}</a>~ 👀\n\n"
+        f"✨ Track your anime watchlist\n"
+        f"📺 15,000+ anime from AniList\n"
+        f"⭐ Rate, review &amp; set reminders\n\n"
+        f"➤ Use /help to see all commands~ 🌸"
+    )
+
+
+# ╔══════════════════════════════════════════════════╗
+# ║                  KEYBOARDS                       ║
+# ╚══════════════════════════════════════════════════╝
+
+def main_menu_kb():
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("➕ Add to Watchlist", callback_data="menu_search"),
-            InlineKeyboardButton("🔍 Search More",      callback_data="menu_search"),
+            InlineKeyboardButton("📋 My Watchlist",  callback_data="menu_watchlist"),
+            InlineKeyboardButton("🔍 Search Anime",  callback_data="menu_search"),
         ],
-        [InlineKeyboardButton("🏠 Main Menu",           callback_data="menu_main")],
+        [
+            InlineKeyboardButton("📊 My Stats",      callback_data="menu_stats"),
+            InlineKeyboardButton("⏰ Reminders",      callback_data="menu_reminders"),
+        ],
+        [
+            InlineKeyboardButton("🏆 Top Rated",     callback_data="menu_top"),
+            InlineKeyboardButton("❓ Help",           callback_data="menu_help"),
+        ],
     ])
 
-# ══════════════════════════════════════════════════════════════
-#   COMMANDS
-# ══════════════════════════════════════════════════════════════
+
+def private_buttons():
+    """Full keyboard shown on /start video — includes Add to Group."""
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("📋 My Watchlist",  callback_data="menu_watchlist"),
+            InlineKeyboardButton("🔍 Search Anime",  callback_data="menu_search"),
+        ],
+        [
+            InlineKeyboardButton("📊 My Stats",      callback_data="menu_stats"),
+            InlineKeyboardButton("⏰ Reminders",      callback_data="menu_reminders"),
+        ],
+        [
+            InlineKeyboardButton("🏆 Top Rated",     callback_data="menu_top"),
+            InlineKeyboardButton("❓ Help",           callback_data="menu_help"),
+        ],
+        [
+            InlineKeyboardButton(
+                "➕ Add to Group",
+                url=f"https://t.me/{BOT_USERNAME}?startgroup=true"
+            ),
+            InlineKeyboardButton(
+                "🌸 Support",
+                url=f"https://t.me/{SUPPORT_GROUP}"
+            ),
+        ],
+    ])
+
+
+def group_buttons():
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(
+                "➕ Add Me to Your Group",
+                url=f"https://t.me/{BOT_USERNAME}?startgroup=true"
+            )
+        ],
+        [
+            InlineKeyboardButton("🌸 Support", url=f"https://t.me/{SUPPORT_GROUP}"),
+            InlineKeyboardButton("❓ Help",    callback_data="menu_help"),
+        ],
+    ])
+
+
+def help_back_kb():
+    """Back button shown below help text."""
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("⬅️ Back", callback_data="back_start")]
+    ])
+
+
+# ╔══════════════════════════════════════════════════╗
+# ║               START COMMAND                      ║
+# ╚══════════════════════════════════════════════════╝
 
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+    chat = update.effective_chat
+
+    # Save user to DB
     upsert_user(user.id, user.username or "", user.first_name or "")
 
-    # Send welcome message with main menu
-    await update.message.reply_text(
-        WELCOME.format(name=user.first_name or "Otaku"),
-        parse_mode="HTML",
-        reply_markup=main_menu_kb()
-    )
+    # ── GROUP MODE ──────────────────────────────────────────────
+    if chat.type != "private":
+        try:
+            await ctx.bot.send_video(
+                chat_id=chat.id,
+                video=VIDEO_GROUP,
+                caption=build_group_caption(user),
+                parse_mode=ParseMode.HTML,
+                reply_markup=group_buttons(),
+                supports_streaming=True,
+            )
+        except Exception as e:
+            logger.warning(f"Group video failed: {e}")
+            await update.message.reply_html(
+                build_group_caption(user),
+                reply_markup=group_buttons()
+            )
+        return
 
-    # Send a spotlight video automatically on first /start
-    await send_spotlight_video(update, ctx, "attack_on_titan")
+    # ── PRIVATE MODE ────────────────────────────────────────────
 
+    # 1️⃣  Random sticker
+    try:
+        sticker = random.choice(STICKER_POOL)
+        await ctx.bot.send_sticker(chat.id, sticker)
+        await asyncio.sleep(0.4)
+    except Exception as e:
+        logger.warning(f"Sticker failed: {e}")
+
+    # 2️⃣  Typing effect (feels alive~)
+    try:
+        await ctx.bot.send_chat_action(chat.id, ChatAction.TYPING)
+        await asyncio.sleep(0.8)
+    except Exception as e:
+        logger.warning(f"Chat action failed: {e}")
+
+    # 3️⃣  Video + caption + full menu buttons
+    try:
+        await ctx.bot.send_video(
+            chat_id=chat.id,
+            video=VIDEO_PRIVATE,
+            caption=build_private_caption(user),
+            parse_mode=ParseMode.HTML,
+            reply_markup=private_buttons(),
+            supports_streaming=True,
+        )
+    except Exception as e:
+        logger.error(f"Private video failed: {e}")
+        # Fallback — text only
+        await update.message.reply_html(
+            build_private_caption(user),
+            reply_markup=private_buttons()
+        )
+
+
+# ╔══════════════════════════════════════════════════╗
+# ║               HELP COMMAND                       ║
+# ╚══════════════════════════════════════════════════╝
 
 async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         HELP_TEXT,
-        parse_mode="HTML",
-        reply_markup=main_menu_kb()
+        parse_mode=ParseMode.HTML,
+        reply_markup=help_back_kb()
     )
 
 
-async def cmd_spotlight(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """
-    /spotlight <anime_key>
-    Sends an anime spotlight video with full description.
-    Usage: /spotlight demon_slayer
-    """
-    key = ctx.args[0].lower() if ctx.args else "attack_on_titan"
-    if key not in SPOTLIGHT_VIDEOS:
-        keys = ", ".join(SPOTLIGHT_VIDEOS.keys())
-        await update.message.reply_text(
-            f"❓ Unknown anime key.\n\nAvailable: <code>{keys}</code>",
-            parse_mode="HTML"
-        )
-        return
-    await send_spotlight_video(update, ctx, key)
-
-
-# ══════════════════════════════════════════════════════════════
-#   SPOTLIGHT VIDEO SENDER
-# ══════════════════════════════════════════════════════════════
-
-async def send_spotlight_video(update: Update, ctx: ContextTypes.DEFAULT_TYPE, key: str):
-    """
-    Sends a spotlight anime video with formatted description below it.
-    The video and description are sent as two separate messages for best UX.
-    """
-    data = SPOTLIGHT_VIDEOS.get(key)
-    if not data:
-        return
-
-    chat_id = update.effective_chat.id
-
-    try:
-        # ── Send the video ──────────────────────────────────────
-        # Telegram supports: file_id, HTTP URL (.mp4), or InputFile
-        # Caption is kept short (Telegram limits captions to 1024 chars)
-        short_caption = f"🎬 <b>Anime Spotlight</b> — {data['title']}"
-
-        await ctx.bot.send_video(
-            chat_id=chat_id,
-            video=data["url"],          # swap with file_id for faster delivery
-            caption=short_caption,
-            parse_mode="HTML",
-            supports_streaming=True,
-            width=1280,
-            height=720,
-        )
-
-    except Exception as e:
-        # If video fails (e.g. URL not accessible), send thumbnail photo instead
-        try:
-            await ctx.bot.send_photo(
-                chat_id=chat_id,
-                photo=data["thumbnail"],
-                caption=short_caption,
-                parse_mode="HTML",
-            )
-        except Exception:
-            pass  # silently skip if both fail
-
-    # ── Send full description as a separate message below ──────
-    await ctx.bot.send_message(
-        chat_id=chat_id,
-        text=data["description"],
-        parse_mode="HTML",
-        reply_markup=spotlight_kb(),
-        disable_web_page_preview=True,
-    )
-
-
-# ══════════════════════════════════════════════════════════════
-#   CALLBACK HANDLER  (menu_ buttons)
-# ══════════════════════════════════════════════════════════════
+# ╔══════════════════════════════════════════════════╗
+# ║           CALLBACK HANDLER (menu_)               ║
+# ╚══════════════════════════════════════════════════╝
 
 async def cb_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     q    = update.callback_query
@@ -217,84 +287,143 @@ async def cb_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await q.answer()
     user = update.effective_user
 
+    # ── Back to start (from help page) ────────────────────────
+    if data == "back_start":
+        try:
+            await q.message.delete()
+        except Exception:
+            pass
+
+        # Re-send sticker + video
+        try:
+            sticker = random.choice(STICKER_POOL)
+            await ctx.bot.send_sticker(q.message.chat.id, sticker)
+            await asyncio.sleep(0.4)
+        except Exception:
+            pass
+
+        try:
+            await ctx.bot.send_video(
+                chat_id=q.message.chat.id,
+                video=VIDEO_PRIVATE,
+                caption=build_private_caption(user),
+                parse_mode=ParseMode.HTML,
+                reply_markup=private_buttons(),
+                supports_streaming=True,
+            )
+        except Exception as e:
+            logger.error(f"Back → video failed: {e}")
+            await ctx.bot.send_message(
+                chat_id=q.message.chat.id,
+                text=build_private_caption(user),
+                parse_mode=ParseMode.HTML,
+                reply_markup=private_buttons()
+            )
+
     # ── Main menu ──────────────────────────────────────────────
-    if data == "menu_main":
-        await q.edit_message_text(
-            WELCOME.format(name=user.first_name or "Otaku"),
-            parse_mode="HTML",
+    elif data == "menu_main":
+        await q.edit_message_caption(
+            caption=build_private_caption(user),
+            parse_mode=ParseMode.HTML,
             reply_markup=main_menu_kb()
         )
 
-    # ── Watchlist filter ───────────────────────────────────────
+    # ── Watchlist ──────────────────────────────────────────────
     elif data == "menu_watchlist":
-        await q.edit_message_text(
-            "📋 <b>My Watchlist</b>\n\nKaun si list dekhni hai?",
-            parse_mode="HTML",
+        await q.edit_message_caption(
+            caption=(
+                "┏━━━❖ 📋 ❖━━━┓\n"
+                "  <b>My Watchlist</b>\n"
+                "┗━━━❖ 📋 ❖━━━┛\n\n"
+                "Kaun si list dekhni hai~ 🌸"
+            ),
+            parse_mode=ParseMode.HTML,
             reply_markup=watchlist_filter_kb()
         )
 
     # ── Search ─────────────────────────────────────────────────
     elif data == "menu_search":
         db.set_state(user.id, "searching")
-        await q.edit_message_text(
-            "🔍 <b>Anime Search</b>\n\n"
-            "Anime ka naam type karo — main AniList se dhundh dunga!\n\n"
-            "<i>Example: Naruto, One Piece, Solo Leveling...</i>",
-            parse_mode="HTML"
+        await q.edit_message_caption(
+            caption=(
+                "┏━━━❖ 🔍 ❖━━━┓\n"
+                "  <b>Anime Search</b>\n"
+                "┗━━━❖ 🔍 ❖━━━┛\n\n"
+                "Anime ka naam type karo~\n"
+                "Main AniList se dhundh dunga! 🌸\n\n"
+                "<i>e.g. Naruto, Solo Leveling, Frieren...</i>"
+            ),
+            parse_mode=ParseMode.HTML,
         )
 
     # ── Stats ──────────────────────────────────────────────────
     elif data == "menu_stats":
         stats = get_user_stats(user.id)
-
-        # Progress bar helper
-        def bar(n, total, width=10):
-            if not total:
-                return "░" * width
-            filled = round((n / total) * width)
-            return "█" * filled + "░" * (width - filled)
-
         total = stats["total_anime"] or 1
+
+        def bar(n):
+            filled = round((n / total) * 8)
+            return "█" * filled + "░" * (8 - filled)
+
         text = (
-            f"📊 <b>{user.first_name}'s Anime Stats</b>\n\n"
-            f"👁️  Watching   {bar(stats['watching'],   total)}  {stats['watching']}\n"
-            f"✅  Completed  {bar(stats['completed'],  total)}  {stats['completed']}\n"
-            f"⏸️  On Hold    {bar(stats['on_hold'],    total)}  {stats['on_hold']}\n"
-            f"❌  Dropped   {bar(stats['dropped'],    total)}  {stats['dropped']}\n"
-            f"📋  Planned   {bar(stats['plan'],       total)}  {stats['plan']}\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"┏━━━❖ 📊 ❖━━━┓\n"
+            f"  <b>{user.first_name}'s Stats</b>\n"
+            f"┗━━━❖ 📊 ❖━━━┛\n\n"
+            f"👁️  Watching   {bar(stats['watching'])}  <b>{stats['watching']}</b>\n"
+            f"✅  Completed  {bar(stats['completed'])}  <b>{stats['completed']}</b>\n"
+            f"⏸️  On Hold    {bar(stats['on_hold'])}  <b>{stats['on_hold']}</b>\n"
+            f"❌  Dropped   {bar(stats['dropped'])}  <b>{stats['dropped']}</b>\n"
+            f"📋  Planned   {bar(stats['plan'])}  <b>{stats['plan']}</b>\n\n"
+            f"───────────────\n"
             f"🎌 Total Anime  : <b>{stats['total_anime']}</b>\n"
-            f"📺 Episodes     : <b>{stats['total_episodes']}</b> watched\n"
+            f"📺 Episodes     : <b>{stats['total_episodes']}</b> watched~"
         )
-        await q.edit_message_text(text, parse_mode="HTML", reply_markup=main_menu_kb())
+        await q.edit_message_caption(
+            caption=text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=main_menu_kb()
+        )
 
     # ── Reminders ──────────────────────────────────────────────
     elif data == "menu_reminders":
         reminders = db.get_user_reminders(user.id)
         if not reminders:
             text = (
-                "⏰ <b>Reminders</b>\n\n"
-                "No active reminders.\n\n"
-                "💡 Search an anime and tap <b>Set Reminder</b> to create one!"
+                "┏━━━❖ ⏰ ❖━━━┓\n"
+                "  <b>Reminders</b>\n"
+                "┗━━━❖ ⏰ ❖━━━┛\n\n"
+                "Koi reminder nahi hai abhi~\n\n"
+                "💡 Anime search karo aur\n"
+                "reminder set karo senpai! 🌸"
             )
         else:
-            text = f"⏰ <b>Active Reminders ({len(reminders)})</b>\n\n"
+            text = (
+                f"┏━━━❖ ⏰ ❖━━━┓\n"
+                f"  <b>Active Reminders ({len(reminders)})</b>\n"
+                f"┗━━━❖ ⏰ ❖━━━┛\n\n"
+            )
             for i, r in enumerate(reminders, 1):
                 text += f"{i}. 🔔 <b>{r['title']}</b>\n   📅 {r['remind_at']}\n\n"
-        await q.edit_message_text(text, parse_mode="HTML", reply_markup=main_menu_kb())
+        await q.edit_message_caption(
+            caption=text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=main_menu_kb()
+        )
 
     # ── Top rated ──────────────────────────────────────────────
     elif data == "menu_top":
         from handlers.watchlist import show_top_rated
         await show_top_rated(q, user.id)
 
-    # ── Spotlight ──────────────────────────────────────────────
-    elif data == "menu_spotlight":
-        # Triggered from main menu button (if added)
-        await send_spotlight_video(
-            update, ctx, "demon_slayer"
-        )
-
     # ── Help ───────────────────────────────────────────────────
     elif data == "menu_help":
-        await q.edit_message_text(HELP_TEXT, parse_mode="HTML", reply_markup=main_menu_kb())
+        try:
+            await q.message.delete()
+        except Exception:
+            pass
+        await ctx.bot.send_message(
+            chat_id=q.message.chat.id,
+            text=HELP_TEXT,
+            parse_mode=ParseMode.HTML,
+            reply_markup=help_back_kb()
+        )
