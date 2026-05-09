@@ -26,9 +26,9 @@ logger = logging.getLogger(__name__)
 # ║                    CONFIG                        ║
 # ╚══════════════════════════════════════════════════╝
 
-BOT_NAME      = "『 ᴀɴɪᴍᴇ ᴡᴀᴛᴄʜ 』"
-BOT_USERNAME  = "YourBotUsername"        # 👈 apna bot username dalo
-SUPPORT_GROUP = "YourSupportGroup"       # 👈 support group link dalo
+BOT_NAME      = "『 ᴋᴀᴡᴀɪɪ ᴡᴀᴛᴄʜʟɪsᴛ ʙᴏᴛ 』"
+BOT_USERNAME  = "anii_watchlist_bot"        # 👈 apna bot username dalo
+SUPPORT_GROUP = "upper_moon_chat"       # 👈 support group link dalo
 
 # 🎬 Anime vibe short clips — catbox ya Telegram file_id
 VIDEO_PRIVATE = "https://files.catbox.moe/931ph0.mp4"   # 👈 replace karo
@@ -37,6 +37,16 @@ VIDEO_GROUP   = "https://files.catbox.moe/dlg0rb.mp4"   # 👈 replace karo
 # 🌸 Sticker pool — randomly pick hoga har baar
 STICKER_POOL = [
     "CAACAgUAAxkBAAFGPRZpzjXBHq7-IjDYsyawr6QAAQ5Oey8AAp0LAAK5UtFVp098U-zMvyc6BA",
+    "CAACAgEAAxkBAAEeArBp_0PND9ItItkafCrI4UmOv2EBBgAC0gMAAikKyUelsJYCEjHNXTsE",
+    "CAACAgEAAxkBAAEeArJp_0PxzvN-5ilGpIXMpzeYeLpgoQACRwMAAkM30Ee3ROpWDMDLHTsE", 
+    "CAACAgEAAxkBAAEeArZp_0QZfV6Xrpt5KXjM759XpTJqDgACnAQAAkZkyUd4IQs3zNkRhjsE",
+    "CAACAgIAAxkBAAEeArhp_0RBISxjLBHXjIM9q05nk1RXYwAC9VEAArDFgUoPPUMuN_aAfDsE",
+    "CAACAgUAAxkBAAEeArpp_0RoaI3svh5OYWNM-j2iId0cMgACmxYAArTtWFbPXttaDP7lPDsE",
+    "CAACAgUAAxkBAAEeArxp_0Rsxl6IsYDU5vlATPFCErd_1AACahEAAj2JWFZ1vJPV4WvfuTsE",
+    "CAACAgUAAxkBAAEeAr5p_0RuS7HXbqqRwNtbstUR90rl1gACIBIAAirXWFbync1V-o2HpDsE",
+    "CAACAgUAAxkBAAEeAsBp_0R5rhS6e2k2HScQmCJuGDf9awACBxMAAm73YFZADMvxEnYfzjsE",
+    "CAACAgUAAxkBAAEeAsJp_0R-8V3dITmgM1n87x57swGazwACgBIAAgVKgFYOJ4iuH0NNajsE",
+    "CAACAgUAAxkBAAEeAsZp_0SQoQmCf8hZKw-_w7aQPVng3AACNRYAAuR8oVaD5ib94PkDIzsE",
     # aur stickers add karo 👇
     # "CAACAgIAAxkBAAI...",
 ]
