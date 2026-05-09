@@ -2,11 +2,11 @@
 #   config.py  –  Bot Configuration
 # ═══════════════════════════════════════════════
 
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"   # 👈 @BotFather se lo
+BOT_TOKEN = "8602498773:AAHal7IMsaoaGI9MdzMlP7X3O0yhuTiUJes"   # 👈 @BotFather se lo
 
 DB_PATH   = "watchlist.db"
 
-ADMIN_IDS = [123456789]             # 👈 Apna Telegram user ID dalo
+ADMIN_IDS = [5158013355]             # 👈 Apna Telegram user ID dalo
 
 # AniList GraphQL API (free, no key needed)
 ANILIST_URL = "https://graphql.anilist.co"
