@@ -57,7 +57,7 @@ HELP_TEXT = (
 SPOTLIGHT_VIDEOS = {
     "attack_on_titan": {
         "title": "⚔️ Attack on Titan",
-        "url": "https://www.w3schools.com/html/mov_bbb.mp4",   # replace with real clip
+        "url": "https://files.catbox.moe/g1b6dp.mp4",   # replace with real clip
         "thumbnail": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-73IhOXpJZiMF.jpg",
         "description": (
             "🎌 <b>Attack on Titan</b> (<i>Shingeki no Kyojin</i>)\n\n"
@@ -77,7 +77,7 @@ SPOTLIGHT_VIDEOS = {
     },
     "demon_slayer": {
         "title": "🌊 Demon Slayer",
-        "url": "https://www.w3schools.com/html/mov_bbb.mp4",
+        "url": "https://files.catbox.moe/qkeqgs.mp4",
         "thumbnail": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx101922-PEn1CTc93blC.jpg",
         "description": (
             "🎌 <b>Demon Slayer</b> (<i>Kimetsu no Yaiba</i>)\n\n"
