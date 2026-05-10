@@ -49,6 +49,7 @@ def anime_action_kb(anime_id: int, in_list: bool = False):
                 InlineKeyboardButton("🗑️ Remove",         callback_data=f"wl_remove_{anime_id}"),
             ],
             [InlineKeyboardButton("⏰ Set Reminder",      callback_data=f"rem_set_{anime_id}")],
+            [InlineKeyboardButton("📺 Where to Watch",    callback_data=f"wtw_anime_{anime_id}")],
             [InlineKeyboardButton("🔙 Back",              callback_data="menu_search")],
         ])
     else:
@@ -57,6 +58,7 @@ def anime_action_kb(anime_id: int, in_list: bool = False):
                 InlineKeyboardButton("➕ Add to List",   callback_data=f"wl_add_{anime_id}"),
                 InlineKeyboardButton("⏰ Reminder",      callback_data=f"rem_set_{anime_id}"),
             ],
+            [InlineKeyboardButton("📺 Where to Watch",   callback_data=f"wtw_anime_{anime_id}")],
             [InlineKeyboardButton("🔙 Back",             callback_data="menu_search")],
         ])
 
