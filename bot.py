@@ -16,6 +16,7 @@ from telegram.ext import (
 from database.db import init_db
 from handlers import start, watchlist, search, reminder, admin
 from handlers.manga import cmd_manga, cb_manga, handle_manga_text
+from handlers.streaming import cb_streaming
 from config import BOT_TOKEN
 
 logging.basicConfig(
@@ -65,6 +66,7 @@ def main():
     app.add_handler(CallbackQueryHandler(reminder.cb_reminder,   pattern="^rem_"))
     app.add_handler(CallbackQueryHandler(admin.cb_admin,         pattern="^adm_"))
     app.add_handler(CallbackQueryHandler(cb_manga,               pattern="^mg_"))
+    app.add_handler(CallbackQueryHandler(cb_streaming,           pattern="^wtw_"))
 
     # ── Text Messages ──────────────────────────────────────────
     app.add_handler(MessageHandler(
